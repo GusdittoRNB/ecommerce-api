@@ -162,4 +162,85 @@ public class UsersHandler implements HttpHandler {
         sendErrorResponse(exchange, 404, "User not found");
     }
 
+    private void handleCreateUser(HttpExchange exchange) throws IOException {
+//            if (!validateApiKey(exchange)) {
+//                sendErrorResponse(exchange, 401, "Unauthorized");
+//                return;
+//            }
+
+        String requestBody = getRequestData(exchange);
+        try {
+            JSONObject userObject = new JSONObject(requestBody);
+            String firstName = userObject.getString("first_name");
+            String lastName = userObject.getString("last_name");
+            String email = userObject.getString("email");
+            String phoneNumber = userObject.getString("phone_number");
+            String type = userObject.getString("type");
+
+            int userId;
+            try (Connection connection = DatabaseConnection.connect();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "INSERT INTO users (first_name, last_name, email, phone_number, type) " +
+                                 "VALUES (?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS)) {
+
+                statement.setString(1, firstName);
+                statement.setString(2, lastName);
+                statement.setString(3, email);
+                statement.setString(4, phoneNumber);
+                statement.setString(5, type);
+                statement.executeUpdate();
+
+                ResultSet generatedKeys = statement.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    userId = generatedKeys.getInt(1);
+                } else {
+                    sendErrorResponse(exchange, 500, "Failed to create user");
+                    return;
+                }
+            }
+
+            // Check if the user has address data
+            if (userObject.has("addresses")) {
+                JSONArray addressesArray = userObject.getJSONArray("addresses");
+                for (int i = 0; i < addressesArray.length(); i++) {
+                    JSONObject addressObject = addressesArray.getJSONObject(i);
+                    String addressType = addressObject.getString("type");
+                    String line1 = addressObject.getString("line1");
+                    String line2 = addressObject.getString("line2");
+                    String city = addressObject.getString("city");
+                    String province = addressObject.getString("province");
+                    String postcode = addressObject.getString("postcode");
+
+                    // Insert address data into the addresses table
+                    try (Connection connection = DatabaseConnection.connect();
+                         PreparedStatement statement = connection.prepareStatement(
+                                 "INSERT INTO addresses (user_id, type, line1, line2, city, province, postcode) " +
+                                         "VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+
+                        statement.setInt(1, userId);
+                        statement.setString(2, addressType);
+                        statement.setString(3, line1);
+                        statement.setString(4, line2);
+                        statement.setString(5, city);
+                        statement.setString(6, province);
+                        statement.setString(7, postcode);
+                        statement.executeUpdate();
+                    }
+
+                }
+            }
+            // Create the response object
+            JSONObject response = new JSONObject();
+            response.put("message", "User created successfully");
+            response.put("user_id", userId);
+
+            sendResponse(exchange, 201, response.toString());
+        } catch (JSONException e) {
+            sendErrorResponse(exchange, 400, "Invalid request body");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            sendErrorResponse(exchange, 500, "Internal Server Error");
+        }
+    }
+
 }
