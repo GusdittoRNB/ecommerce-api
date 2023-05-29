@@ -48,9 +48,14 @@ public class UsersHandler implements HttpHandler {
                 handleGetUserById(exchange);
                 return;
             }
-        } else if (method.equals("POST") && path.equals("/users")) {
-            handleCreateUser(exchange);
-            return;
+        } else if (method.equals("POST")) {
+            if (path.matches("/users")) {
+                handleCreateUser(exchange);
+                return;
+            } else if (path.matches("/users/addresses")) {
+                handleCreateAddress(exchange);
+                return;
+            }
         } else if (method.equals("PUT")) {
             if (path.matches("/users/\\d+")) {
                 handleUpdateUser(exchange);
@@ -59,7 +64,7 @@ public class UsersHandler implements HttpHandler {
                 handleUpdateAddress(exchange);
                 return;
             }
-        } else if (method.equals("DELETE") && path.matches("/users/\\d+")) {
+        } else if (method.equals("DELETE")) {
             if (path.matches("/users/\\d+")) {
                 handleDeleteUser(exchange);
                 return;
@@ -243,6 +248,50 @@ public class UsersHandler implements HttpHandler {
         }
     }
 
+    private void handleCreateAddress(HttpExchange exchange) throws IOException {
+//            if (!validateApiKey(exchange)) {
+//                sendErrorResponse(exchange, 401, "Unauthorized");
+//                return;
+//            }
+
+        String requestBody = getRequestData(exchange);
+        try {
+            JSONObject addressObject = new JSONObject(requestBody);
+            int userId = addressObject.getInt("user_id");
+            String addressType = addressObject.getString("type");
+            String line1 = addressObject.getString("line1");
+            String line2 = addressObject.getString("line2");
+            String city = addressObject.getString("city");
+            String province = addressObject.getString("province");
+            String postcode = addressObject.getString("postcode");
+
+            try (Connection connection = DatabaseConnection.connect();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "INSERT INTO addresses (user_id, type, line1, line2, city, province, postcode) " +
+                                 "VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+
+                statement.setInt(1, userId);
+                statement.setString(2, addressType);
+                statement.setString(3, line1);
+                statement.setString(4, line2);
+                statement.setString(5, city);
+                statement.setString(6, province);
+                statement.setString(7, postcode);
+                statement.executeUpdate();
+            }
+
+            JSONObject response = new JSONObject();
+            response.put("message", "Address added successfully");
+
+            sendResponse(exchange, 201, response.toString());
+        } catch (JSONException e) {
+            sendErrorResponse(exchange, 400, "Invalid request body");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            sendErrorResponse(exchange, 500, "Internal Server Error");
+        }
+    }
+
     private void handleUpdateUser(HttpExchange exchange) throws IOException {
 //            if (!validateApiKey(exchange)) {
 //                sendErrorResponse(exchange, 401, "Unauthorized");
@@ -279,6 +328,55 @@ public class UsersHandler implements HttpHandler {
                     sendResponse(exchange, 200, responseObj.toString());
                     return;
                 }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        sendErrorResponse(exchange, 400, "Bad Request");
+    }
+
+    private void handleUpdateAddress(HttpExchange exchange) throws IOException {
+//            if (!validateApiKey(exchange)) {
+//                sendErrorResponse(exchange, 401, "Unauthorized");
+//                return;
+//            }
+
+        String path = exchange.getRequestURI().getPath();
+        int addressId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
+
+        String requestBody = getRequestData(exchange);
+        try {
+            JSONObject addressObject = new JSONObject(requestBody);
+            String type = addressObject.getString("type");
+            String line1 = addressObject.getString("line1");
+            String line2 = addressObject.getString("line2");
+            String city = addressObject.getString("city");
+            String province = addressObject.getString("province");
+            String postcode = addressObject.getString("postcode");
+
+            try (Connection connection = DatabaseConnection.connect();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "UPDATE addresses SET type = ?, line1 = ?, line2 = ?, city = ?, province = ?, postcode = ? WHERE address_id = ?")) {
+
+                statement.setString(1, type);
+                statement.setString(2, line1);
+                statement.setString(3, line2);
+                statement.setString(4, city);
+                statement.setString(5, province);
+                statement.setString(6, postcode);
+                statement.setInt(7, addressId);
+
+                int affectedRows = statement.executeUpdate();
+                if (affectedRows > 0) {
+                    JSONObject responseObj = new JSONObject();
+                    responseObj.put("message", "Address updated successfully");
+                    sendResponse(exchange, 200, responseObj.toString());
+                    return;
+                }
+
             } catch (SQLException e) {
                 e.printStackTrace();
             }
