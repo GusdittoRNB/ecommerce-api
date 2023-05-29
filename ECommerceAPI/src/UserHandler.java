@@ -31,4 +31,42 @@ public class UsersHandler implements HttpHandler {
 
         return requestData.toString();
     }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+        String method = exchange.getRequestMethod();
+        String path = exchange.getRequestURI().getPath();
+
+        if (method.equals("GET")) {
+            if (path.equals("/users")) {
+                handleGetUsers(exchange);
+                return;
+            } else if (path.matches("/users/\\d+")) {
+                handleGetUserById(exchange);
+                return;
+            }
+        } else if (method.equals("POST") && path.equals("/users")) {
+            handleCreateUser(exchange);
+            return;
+        } else if (method.equals("PUT")) {
+            if (path.matches("/users/\\d+")) {
+                handleUpdateUser(exchange);
+                return;
+            } else if (path.matches("/users/addresses/\\d+")) {
+                handleUpdateAddress(exchange);
+                return;
+            }
+        } else if (method.equals("DELETE") && path.matches("/users/\\d+")) {
+            if (path.matches("/users/\\d+")) {
+                handleDeleteUser(exchange);
+                return;
+            } else if (path.matches("/users/addresses/\\d+")) {
+                handleDeleteAddress(exchange);
+                return;
+            }
+        }
+
+        sendErrorResponse(exchange, 404, "Not Found");
+    }
+
 }
