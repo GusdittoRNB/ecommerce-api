@@ -2,7 +2,7 @@ import java.net.InetSocketAddress;
 
 import com.sun.net.httpserver.HttpServer;
 
-public class ECommerceAPI {
+public class Main {
     private static final int PORT = 003;
 
     public static void main(String[] args) {
