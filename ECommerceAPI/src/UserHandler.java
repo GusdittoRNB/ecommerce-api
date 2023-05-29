@@ -243,4 +243,50 @@ public class UsersHandler implements HttpHandler {
         }
     }
 
+    private void handleUpdateUser(HttpExchange exchange) throws IOException {
+//            if (!validateApiKey(exchange)) {
+//                sendErrorResponse(exchange, 401, "Unauthorized");
+//                return;
+//            }
+
+        String path = exchange.getRequestURI().getPath();
+        int userId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
+
+        String requestBody = getRequestData(exchange);
+        try {
+            JSONObject userObject = new JSONObject(requestBody);
+            String firstName = userObject.getString("first_name");
+            String lastName = userObject.getString("last_name");
+            String email = userObject.getString("email");
+            String phoneNumber = userObject.getString("phone_number");
+            String type = userObject.getString("type");
+
+            try (Connection connection = DatabaseConnection.connect();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "UPDATE users SET first_name = ?, last_name = ?, email = ?, phone_number = ?, type = ? WHERE user_id = ?")) {
+
+                statement.setString(1, firstName);
+                statement.setString(2, lastName);
+                statement.setString(3, email);
+                statement.setString(4, phoneNumber);
+                statement.setString(5, type);
+                statement.setInt(6, userId);
+
+                int affectedRows = statement.executeUpdate();
+                if (affectedRows > 0) {
+                    JSONObject responseObj = new JSONObject();
+                    responseObj.put("message", "User updated successfully");
+                    sendResponse(exchange, 200, responseObj.toString());
+                    return;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        sendErrorResponse(exchange, 400, "Bad Request");
+    }
+
 }
