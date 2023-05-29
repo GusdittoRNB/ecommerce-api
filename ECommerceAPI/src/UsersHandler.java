@@ -35,47 +35,54 @@ public class UsersHandler implements HttpHandler {
         return requestData.toString();
     }
 
+
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         String method = exchange.getRequestMethod();
         String path = exchange.getRequestURI().getPath();
 
-        if (method.equals("GET")) {
-            if (path.equals("/users")) {
-                handleGetAllUsers(exchange);
-                return;
-            } else if (path.matches("/users/\\d+")) {
-                handleGetUserById(exchange);
-                return;
-            }
-        } else if (method.equals("POST")) {
-            if (path.matches("/users")) {
-                handleCreateUser(exchange);
-                return;
-            } else if (path.matches("/users/addresses")) {
-                handleCreateAddress(exchange);
-                return;
-            }
-        } else if (method.equals("PUT")) {
-            if (path.matches("/users/\\d+")) {
-                handleUpdateUser(exchange);
-                return;
-            } else if (path.matches("/users/addresses/\\d+")) {
-                handleUpdateAddress(exchange);
-                return;
-            }
-        } else if (method.equals("DELETE")) {
-            if (path.matches("/users/\\d+")) {
-                handleDeleteUser(exchange);
-                return;
-            } else if (path.matches("/users/addresses/\\d+")) {
-                handleDeleteAddress(exchange);
-                return;
-            }
+        switch (method) {
+            case "GET":
+                if (path.equals("/users")) {
+                    handleGetAllUsers(exchange);
+                    return;
+                } else if (path.matches("/users/\\d+")) {
+                    handleGetUserById(exchange);
+                    return;
+                }
+                break;
+            case "POST":
+                if (path.matches("/users")) {
+                    handleCreateUser(exchange);
+                    return;
+                } else if (path.matches("/users/addresses")) {
+                    handleCreateAddress(exchange);
+                    return;
+                }
+                break;
+            case "PUT":
+                if (path.matches("/users/\\d+")) {
+                    handleUpdateUser(exchange);
+                    return;
+                } else if (path.matches("/users/addresses/\\d+")) {
+                    handleUpdateAddress(exchange);
+                    return;
+                }
+                break;
+            case "DELETE":
+                if (path.matches("/users/\\d+")) {
+                    handleDeleteUser(exchange);
+                    return;
+                } else if (path.matches("/users/addresses/\\d+")) {
+                    handleDeleteAddress(exchange);
+                    return;
+                }
+                break;
         }
 
         sendErrorResponse(exchange, 404, "Not Found");
     }
+
 
     private void handleGetAllUsers(HttpExchange exchange) throws IOException {
 //            if (!validateApiKey(exchange)) {
@@ -387,4 +394,64 @@ public class UsersHandler implements HttpHandler {
         sendErrorResponse(exchange, 400, "Bad Request");
     }
 
+    private void handleDeleteAddress(HttpExchange exchange) throws IOException {
+//            if (!validateApiKey(exchange)) {
+//                sendErrorResponse(exchange, 401, "Unauthorized");
+//                return;
+//            }
+
+        String path = exchange.getRequestURI().getPath();
+        int addressId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
+
+        try (Connection connection = DatabaseConnection.connect()){
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM addresses WHERE address_id = ?")) {
+                statement.setInt(1, addressId);
+                statement.executeUpdate();
+
+                statement.setInt(1, addressId);
+                JSONObject responseObj = new JSONObject();
+                responseObj.put("message", "Address deleted successfully");
+                sendResponse(exchange, 200, responseObj.toString());
+                return;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        sendErrorResponse(exchange, 404, "User not found");
+    }
+
+    private void handleDeleteUser(HttpExchange exchange) throws IOException {
+//            if (!validateApiKey(exchange)) {
+//                sendErrorResponse(exchange, 401, "Unauthorized");
+//                return;
+//            }
+
+        String path = exchange.getRequestURI().getPath();
+        int userId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
+
+        try (Connection connection = DatabaseConnection.connect()){
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM addresses WHERE user_id = ?")) {
+                statement.setInt(1, userId);
+                statement.executeUpdate();
+            }
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "DELETE FROM users WHERE user_id = ?")) {
+                statement.setInt(1, userId);
+                int affectedRows = statement.executeUpdate();
+                if (affectedRows > 0) {
+                    JSONObject responseObj = new JSONObject();
+                    responseObj.put("message", "User deleted successfully");
+                    sendResponse(exchange, 200, responseObj.toString());
+                    return;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        sendErrorResponse(exchange, 404, "User not found");
+    }
 }
