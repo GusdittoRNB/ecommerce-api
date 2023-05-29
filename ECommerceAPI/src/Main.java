@@ -12,6 +12,6 @@ public class Main {
         // Add more handlers for other endpoints (/products, /orders, /reviews) if needed
         server.setExecutor(null);
         server.start();
-        System.out.println("Server started on port 5050");
+        System.out.println("Server started on port 003");
     }
 }
