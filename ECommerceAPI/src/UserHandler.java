@@ -1,8 +1,14 @@
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public class UsersHandler implements HttpHandler {
     private static void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
@@ -39,7 +45,7 @@ public class UsersHandler implements HttpHandler {
 
         if (method.equals("GET")) {
             if (path.equals("/users")) {
-                handleGetUsers(exchange);
+                handleGetAllUsers(exchange);
                 return;
             } else if (path.matches("/users/\\d+")) {
                 handleGetUserById(exchange);
@@ -67,6 +73,37 @@ public class UsersHandler implements HttpHandler {
         }
 
         sendErrorResponse(exchange, 404, "Not Found");
+    }
+
+    private void handleGetAllUsers(HttpExchange exchange) throws IOException {
+//            if (!validateApiKey(exchange)) {
+//                sendErrorResponse(exchange, 401, "Unauthorized");
+//                return;
+//            }
+
+        try (Connection connection = DatabaseConnection.connect();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM users")) {
+
+            JSONArray usersArray = new JSONArray();
+
+            while (resultSet.next()) {
+                JSONObject userObject = new JSONObject();
+                userObject.put("user_id", resultSet.getInt("user_id"));
+                userObject.put("first_name", resultSet.getString("first_name"));
+                userObject.put("last_name", resultSet.getString("last_name"));
+                userObject.put("email", resultSet.getString("email"));
+                userObject.put("phone_number", resultSet.getString("phone_number"));
+                userObject.put("type", resultSet.getString("type"));
+
+                usersArray.put(userObject);
+            }
+
+            sendResponse(exchange, 200, usersArray.toString());
+        } catch (SQLException | JSONException e) {
+            e.printStackTrace();
+            sendErrorResponse(exchange, 500, "Internal Server Error");
+        }
     }
 
 }
