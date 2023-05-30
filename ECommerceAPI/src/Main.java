@@ -9,6 +9,7 @@ public class Main {
     public static void main(String[] args) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
         server.createContext("/users", new UsersHandler());
+        server.createContext("/products", new ProductsHandler());
         // Add more handlers for other endpoints (/products, /orders, /reviews) if needed
         server.setExecutor(null);
         server.start();
