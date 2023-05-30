@@ -11,6 +11,7 @@ public class Main {
         server.createContext("/users", new UsersHandler());
         server.createContext("/products", new ProductsHandler());
         server.createContext("/orders", new OrdersHandler());
+        server.createContext("/reviews", new ReviewsHandler());
 
         server.setExecutor(null);
         server.start();
