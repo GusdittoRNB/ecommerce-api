@@ -54,6 +54,7 @@ Program ini merupakan API untuk aplikasi e-commerce yang memungkinkan mengelola 
 - **GET /users**: Mendapatkan semua pengguna.
 - **GET /users?type=seller**: Memfilter user yang memiliki type = seller.
 - **GET /users/{id}**: Mendapatkan pengguna berdasarkan ID dan menampilkan alamatnya.
+- **GET /users/products/{id}**: Mendapatkan produk pengguna berdasarkan ID pengguna.
 - **POST /users**: Membuat pengguna baru. Jangan lupa tambahkan body raw json nya, contohnya sebagai berikut:
 {
     "last_name": "GGG",
