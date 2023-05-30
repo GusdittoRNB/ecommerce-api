@@ -6,6 +6,8 @@ import org.json.JSONObject;
 
 import java.io.*;
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class UsersHandler implements HttpHandler {
     private static void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
@@ -33,6 +35,20 @@ public class UsersHandler implements HttpHandler {
         }
 
         return requestData.toString();
+    }
+
+    private Map<String, String> parseQueryParams(String query) {
+        Map<String, String> params = new HashMap<>();
+        if (query != null) {
+            String[] keyValuePairs = query.split("&");
+            for (String pair : keyValuePairs) {
+                String[] keyValue = pair.split("=");
+                if (keyValue.length == 2) {
+                    params.put(keyValue[0], keyValue[1]);
+                }
+            }
+        }
+        return params;
     }
 
 
@@ -90,28 +106,67 @@ public class UsersHandler implements HttpHandler {
 //                return;
 //            }
 
-        try (Connection connection = DatabaseConnection.connect();
-             Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery("SELECT * FROM users")) {
+        // Mendapatkan nilai query params "type" dari URL
+        String query = exchange.getRequestURI().getQuery();
+        Map<String, String> queryParams = parseQueryParams(query);
+        String userType = queryParams.get("type");
 
-            JSONArray usersArray = new JSONArray();
+        if (userType != null) {
+            // Menampilkan pengguna berdasarkan tipe (type)
+            try (Connection connection = DatabaseConnection.connect();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "SELECT * FROM users WHERE type = ?")) {
 
-            while (resultSet.next()) {
-                JSONObject userObject = new JSONObject();
-                userObject.put("user_id", resultSet.getInt("user_id"));
-                userObject.put("first_name", resultSet.getString("first_name"));
-                userObject.put("last_name", resultSet.getString("last_name"));
-                userObject.put("email", resultSet.getString("email"));
-                userObject.put("phone_number", resultSet.getString("phone_number"));
-                userObject.put("type", resultSet.getString("type"));
+                statement.setString(1, userType);
+                ResultSet resultSet = statement.executeQuery();
 
-                usersArray.put(userObject);
+                JSONArray usersArray = new JSONArray();
+                while (resultSet.next()) {
+                    JSONObject userObject = new JSONObject();
+                    userObject.put("user_id", resultSet.getInt("user_id"));
+                    userObject.put("first_name", resultSet.getString("first_name"));
+                    userObject.put("last_name", resultSet.getString("last_name"));
+                    userObject.put("email", resultSet.getString("email"));
+                    userObject.put("phone_number", resultSet.getString("phone_number"));
+                    userObject.put("type", resultSet.getString("type"));
+                    usersArray.put(userObject);
+                }
+
+                JSONObject response = new JSONObject();
+                response.put("users", usersArray);
+
+                sendResponse(exchange, 200, response.toString());
+            } catch (SQLException e) {
+                e.printStackTrace();
+                sendErrorResponse(exchange, 500, "Internal Server Error");
             }
+        } else {
+            // Menampilkan semua pengguna
+            try (Connection connection = DatabaseConnection.connect();
+                 Statement statement = connection.createStatement()) {
 
-            sendResponse(exchange, 200, usersArray.toString());
-        } catch (SQLException | JSONException e) {
-            e.printStackTrace();
-            sendErrorResponse(exchange, 500, "Internal Server Error");
+                ResultSet resultSet = statement.executeQuery("SELECT * FROM users");
+
+                JSONArray usersArray = new JSONArray();
+                while (resultSet.next()) {
+                    JSONObject userObject = new JSONObject();
+                    userObject.put("user_id", resultSet.getInt("user_id"));
+                    userObject.put("first_name", resultSet.getString("first_name"));
+                    userObject.put("last_name", resultSet.getString("last_name"));
+                    userObject.put("email", resultSet.getString("email"));
+                    userObject.put("phone_number", resultSet.getString("phone_number"));
+                    userObject.put("type", resultSet.getString("type"));
+                    usersArray.put(userObject);
+                }
+
+                JSONObject response = new JSONObject();
+                response.put("users", usersArray);
+
+                sendResponse(exchange, 200, response.toString());
+            } catch (SQLException e) {
+                e.printStackTrace();
+                sendErrorResponse(exchange, 500, "Internal Server Error");
+            }
         }
     }
 
