@@ -1,5 +1,6 @@
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import io.github.cdimascio.dotenv.Dotenv;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -10,6 +11,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class UsersHandler implements HttpHandler {
+    private static final String API_KEY;
+
+    static {
+        Dotenv dotenv = Dotenv.configure().directory(".env").load();
+        API_KEY = dotenv.get("API_KEY");
+    }
+
     private static void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
         exchange.getResponseHeaders().set("Content-Type", "application/json");
         exchange.sendResponseHeaders(statusCode, response.length());
@@ -49,6 +57,11 @@ public class UsersHandler implements HttpHandler {
             }
         }
         return params;
+    }
+
+    private static boolean validateApiKey(HttpExchange exchange) {
+        String apiKey = exchange.getRequestHeaders().getFirst("x-api-key");
+        return apiKey != null && apiKey.equals(API_KEY);
     }
 
 
@@ -101,10 +114,10 @@ public class UsersHandler implements HttpHandler {
 
 
     private void handleGetAllUsers(HttpExchange exchange) throws IOException {
-//            if (!validateApiKey(exchange)) {
-//                sendErrorResponse(exchange, 401, "Unauthorized");
-//                return;
-//            }
+        if (!validateApiKey(exchange)) {
+                sendErrorResponse(exchange, 401, "Unauthorized");
+                return;
+            }
 
         // Mendapatkan nilai query params "type" dari URL
         String query = exchange.getRequestURI().getQuery();
