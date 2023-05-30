@@ -1,5 +1,6 @@
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import io.github.cdimascio.dotenv.Dotenv;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -11,6 +12,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ProductsHandler implements HttpHandler {
+    private static final String API_KEY;
+
+    static {
+        Dotenv dotenv = Dotenv.configure().directory(".env").load();
+        API_KEY = dotenv.get("API_KEY");
+    }
+
     private Connection getConnection() throws SQLException {
         return DatabaseConnection.connect();
     }
@@ -54,6 +62,11 @@ public class ProductsHandler implements HttpHandler {
         return params;
     }
 
+    private static boolean validateApiKey(HttpExchange exchange) {
+        String apiKey = exchange.getRequestHeaders().getFirst("x-api-key");
+        return apiKey != null && apiKey.equals(API_KEY);
+    }
+
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -90,6 +103,10 @@ public class ProductsHandler implements HttpHandler {
     }
 
     private void handleGetAllProducts(HttpExchange exchange) throws IOException {
+        if (!validateApiKey(exchange)) {
+            sendErrorResponse(exchange, 401, "Unauthorized");
+            return;
+        }
         try {
             Map<String, String> queryParams = parseQueryParams(exchange.getRequestURI().getQuery());
             String filterField = queryParams.get("field");
@@ -156,6 +173,10 @@ public class ProductsHandler implements HttpHandler {
     }
 
     private void handleGetProduct(HttpExchange exchange, int productId) throws IOException {
+        if (!validateApiKey(exchange)) {
+            sendErrorResponse(exchange, 401, "Unauthorized");
+            return;
+        }
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT * FROM products WHERE product_id = ?")) {
 
@@ -182,6 +203,10 @@ public class ProductsHandler implements HttpHandler {
     }
 
     private void handleCreateProduct(HttpExchange exchange) throws IOException {
+        if (!validateApiKey(exchange)) {
+            sendErrorResponse(exchange, 401, "Unauthorized");
+            return;
+        }
         String requestBody = getRequestData(exchange);
         try {
             JSONObject productObject = new JSONObject(requestBody);
@@ -221,6 +246,10 @@ public class ProductsHandler implements HttpHandler {
     }
 
     private void handleUpdateProduct(HttpExchange exchange, int productId) throws IOException {
+        if (!validateApiKey(exchange)) {
+            sendErrorResponse(exchange, 401, "Unauthorized");
+            return;
+        }
         String requestBody = getRequestData(exchange);
         try {
             JSONObject productObject = new JSONObject(requestBody);
@@ -257,6 +286,10 @@ public class ProductsHandler implements HttpHandler {
     }
 
     private void handleDeleteProduct(HttpExchange exchange, int productId) throws IOException {
+        if (!validateApiKey(exchange)) {
+            sendErrorResponse(exchange, 401, "Unauthorized");
+            return;
+        }
         try (Connection connection = getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM products WHERE product_id = ?")) {
 

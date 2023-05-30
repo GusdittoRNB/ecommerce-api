@@ -1,5 +1,6 @@
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import io.github.cdimascio.dotenv.Dotenv;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -13,6 +14,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ReviewsHandler implements HttpHandler {
+    private static final String API_KEY;
+
+    static {
+        Dotenv dotenv = Dotenv.configure().directory(".env").load();
+        API_KEY = dotenv.get("API_KEY");
+    }
+
     private String getRequestBody(HttpExchange exchange) throws IOException {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()))) {
             StringBuilder body = new StringBuilder();
@@ -52,6 +60,11 @@ public class ReviewsHandler implements HttpHandler {
         return params;
     }
 
+    private static boolean validateApiKey(HttpExchange exchange) {
+        String apiKey = exchange.getRequestHeaders().getFirst("x-api-key");
+        return apiKey != null && apiKey.equals(API_KEY);
+    }
+
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -80,10 +93,10 @@ public class ReviewsHandler implements HttpHandler {
     }
 
     private void handleGetAllReviews(HttpExchange exchange) throws IOException {
-        //            if (!validateApiKey(exchange)) {
-//                sendErrorResponse(exchange, 401, "Unauthorized");
-//                return;
-//            }
+        if (!validateApiKey(exchange)) {
+                sendErrorResponse(exchange, 401, "Unauthorized");
+                return;
+            }
 
         // Mendapatkan nilai query params "type" dari URL
         String query = exchange.getRequestURI().getQuery();
@@ -144,6 +157,10 @@ public class ReviewsHandler implements HttpHandler {
     }
 
     private void handleGetReviewsByOrderId(HttpExchange exchange, String path) throws IOException {
+        if (!validateApiKey(exchange)) {
+            sendErrorResponse(exchange, 401, "Unauthorized");
+            return;
+        }
         String orderId = path.substring(path.lastIndexOf('/') + 1);
 
         try (Connection connection = DatabaseConnection.connect();
@@ -172,6 +189,10 @@ public class ReviewsHandler implements HttpHandler {
     }
 
     private void handleCreateReview(HttpExchange exchange, String path) throws IOException {
+        if (!validateApiKey(exchange)) {
+            sendErrorResponse(exchange, 401, "Unauthorized");
+            return;
+        }
         String orderId = path.substring(path.lastIndexOf('/') + 1);
 
         String requestBody = getRequestBody(exchange);
@@ -202,6 +223,10 @@ public class ReviewsHandler implements HttpHandler {
     }
 
     private void handleDeleteReview(HttpExchange exchange, String path) throws IOException {
+        if (!validateApiKey(exchange)) {
+            sendErrorResponse(exchange, 401, "Unauthorized");
+            return;
+        }
         String orderId = path.substring(path.lastIndexOf('/') + 1);
 
         try (Connection connection = DatabaseConnection.connect();
