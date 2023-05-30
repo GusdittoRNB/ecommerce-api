@@ -78,6 +78,9 @@ public class UsersHandler implements HttpHandler {
                 } else if (path.matches("/users/\\d+")) {
                     handleGetUserById(exchange);
                     return;
+                } else if (path.matches("/users/products/\\d+")) {
+                    handleGetProductUser(exchange);
+                    return;
                 }
                 break;
             case "POST":
@@ -520,6 +523,63 @@ public class UsersHandler implements HttpHandler {
             e.printStackTrace();
         }
 
+        sendErrorResponse(exchange, 404, "User not found");
+    }
+
+    private void handleGetProductUser(HttpExchange exchange) throws IOException {
+        if (!validateApiKey(exchange)) {
+            sendErrorResponse(exchange, 401, "Unauthorized");
+            return;
+        }
+
+        String path = exchange.getRequestURI().getPath();
+        int userId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
+
+        try (Connection connection = DatabaseConnection.connect();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT users.user_id, users.first_name, users.last_name, users.email, " +
+                             "users.phone_number, users.type, products.product_id, products.seller, products.title, " +
+                             "products.description, products.price, products.stock " +
+                             "FROM users LEFT JOIN products ON users.user_id = products.seller " +
+                             "WHERE users.user_id = ?")) {
+
+            statement.setInt(1, userId);
+
+            ResultSet resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                JSONObject userObject = new JSONObject();
+                userObject.put("user_id", resultSet.getInt("user_id"));
+                userObject.put("first_name", resultSet.getString("first_name"));
+                userObject.put("last_name", resultSet.getString("last_name"));
+                userObject.put("email", resultSet.getString("email"));
+                userObject.put("phone_number", resultSet.getString("phone_number"));
+                userObject.put("type", resultSet.getString("type"));
+
+                JSONArray productsArray = new JSONArray();
+                while (resultSet.getString("seller") != null) {
+                    JSONObject productsObject = new JSONObject();
+                    productsObject.put("product_id", resultSet.getString("product_id"));
+                    productsObject.put("title", resultSet.getString("title"));
+                    productsObject.put("description", resultSet.getString("description"));
+                    productsObject.put("price", resultSet.getString("price"));
+                    productsObject.put("stock", resultSet.getString("stock"));
+                    productsArray.put(productsObject);
+                    if (!resultSet.next()) {
+                        break;
+                    }
+                }
+
+                if (productsArray.length() > 0) {
+                    userObject.put("products", productsArray);
+                }
+
+                sendResponse(exchange, 200, userObject.toString());
+                return;
+            }
+        } catch (SQLException | JSONException e) {
+            e.printStackTrace();
+            sendErrorResponse(exchange, 500, "Internal Server Error");
+        }
         sendErrorResponse(exchange, 404, "User not found");
     }
 }
