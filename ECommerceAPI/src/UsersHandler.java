@@ -184,10 +184,10 @@ public class UsersHandler implements HttpHandler {
     }
 
     private void handleGetUserById(HttpExchange exchange) throws IOException {
-//            if (!validateApiKey(exchange)) {
-//                sendErrorResponse(exchange, 401, "Unauthorized");
-//                return;
-//            }
+        if (!validateApiKey(exchange)) {
+                sendErrorResponse(exchange, 401, "Unauthorized");
+                return;
+            }
 
         String path = exchange.getRequestURI().getPath();
         int userId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
@@ -243,10 +243,10 @@ public class UsersHandler implements HttpHandler {
     }
 
     private void handleCreateUser(HttpExchange exchange) throws IOException {
-//            if (!validateApiKey(exchange)) {
-//                sendErrorResponse(exchange, 401, "Unauthorized");
-//                return;
-//            }
+        if (!validateApiKey(exchange)) {
+                sendErrorResponse(exchange, 401, "Unauthorized");
+                return;
+            }
 
         String requestBody = getRequestData(exchange);
         try {
@@ -324,10 +324,10 @@ public class UsersHandler implements HttpHandler {
     }
 
     private void handleCreateAddress(HttpExchange exchange) throws IOException {
-//            if (!validateApiKey(exchange)) {
-//                sendErrorResponse(exchange, 401, "Unauthorized");
-//                return;
-//            }
+        if (!validateApiKey(exchange)) {
+                sendErrorResponse(exchange, 401, "Unauthorized");
+                return;
+            }
 
         String requestBody = getRequestData(exchange);
         try {
@@ -368,10 +368,10 @@ public class UsersHandler implements HttpHandler {
     }
 
     private void handleUpdateUser(HttpExchange exchange) throws IOException {
-//            if (!validateApiKey(exchange)) {
-//                sendErrorResponse(exchange, 401, "Unauthorized");
-//                return;
-//            }
+        if (!validateApiKey(exchange)) {
+                sendErrorResponse(exchange, 401, "Unauthorized");
+                return;
+            }
 
         String path = exchange.getRequestURI().getPath();
         int userId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
@@ -414,10 +414,10 @@ public class UsersHandler implements HttpHandler {
     }
 
     private void handleUpdateAddress(HttpExchange exchange) throws IOException {
-//            if (!validateApiKey(exchange)) {
-//                sendErrorResponse(exchange, 401, "Unauthorized");
-//                return;
-//            }
+        if (!validateApiKey(exchange)) {
+                sendErrorResponse(exchange, 401, "Unauthorized");
+                return;
+            }
 
         String path = exchange.getRequestURI().getPath();
         int addressId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
@@ -463,10 +463,10 @@ public class UsersHandler implements HttpHandler {
     }
 
     private void handleDeleteAddress(HttpExchange exchange) throws IOException {
-//            if (!validateApiKey(exchange)) {
-//                sendErrorResponse(exchange, 401, "Unauthorized");
-//                return;
-//            }
+        if (!validateApiKey(exchange)) {
+                sendErrorResponse(exchange, 401, "Unauthorized");
+                return;
+            }
 
         String path = exchange.getRequestURI().getPath();
         int addressId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
@@ -491,10 +491,10 @@ public class UsersHandler implements HttpHandler {
     }
 
     private void handleDeleteUser(HttpExchange exchange) throws IOException {
-//            if (!validateApiKey(exchange)) {
-//                sendErrorResponse(exchange, 401, "Unauthorized");
-//                return;
-//            }
+        if (!validateApiKey(exchange)) {
+                sendErrorResponse(exchange, 401, "Unauthorized");
+                return;
+            }
 
         String path = exchange.getRequestURI().getPath();
         int userId = Integer.parseInt(path.substring(path.lastIndexOf('/') + 1));
