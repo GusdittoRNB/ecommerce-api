@@ -10,7 +10,8 @@ public class Main {
         HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
         server.createContext("/users", new UsersHandler());
         server.createContext("/products", new ProductsHandler());
-        // Add more handlers for other endpoints (/products, /orders, /reviews) if needed
+        server.createContext("/orders", new OrdersHandler());
+
         server.setExecutor(null);
         server.start();
         System.out.println("Server started on port 003");
